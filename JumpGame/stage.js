@@ -1,8 +1,5 @@
-import * as THREE from "../three.js/build/three.module.js";
-import {OrbitControls} from "../three.js/examples/jsm/controls/OrbitControls.js";
-import {GUI} from "../three.js/examples/jsm/libs/dat.gui.module.js";
-import {GLTFLoader} from "../three.js/examples/jsm/loaders/GLTFLoader.js";
-
+import * as THREE from "https://unpkg.com/three@0.124.0/build/three.min.js";
+import {OrbitControls} from "https://unpkg.com/three@0.124.0/examples/js/controls/OrbitControls.js";
 const color = [0x8080ff, 0xff6666, 0x4dffa6];
 
 class stage{
