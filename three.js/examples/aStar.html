@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>aStarAlgorithm</title>
+    <style>
+        html {
+            margin: 0;
+            height: 100%;
+        }
+
+        #aS {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="aS" width="1920" height="937"></canvas>
+
+<script type="module">
+    import * as THREE from "./three.js/build/three.module.js";
+    import * as OrbitControls from "./three.js/examples/jsm/controls/OrbitControls.js";
+    import {GUI} from "./three.js/examples/jsm/libs/dat.gui.module.js";
+
+    const fov = 90;
+    const aspect = 2;
+    const near = 0.1;
+    const far = 20;
+    const length = 100;
+    let scene = new THREE.Scene();
+    const canvas = document.getElementById("aS");
+    let helper = new THREE.GridHelper(100, 10, 0x111111, 0x111111);
+    const axes = new THREE.AxesHelper(150);
+    let mesh = [];
+    let map = [];
+    let graph = [];
+    let stEn = [];
+    let res = [];
+    scene.add(axes);
+
+    function initGround(){
+        helper.position.set(length / 2, 0, length / 2);
+        scene.add(helper);
+        for(let i = 0; i < 10; i++){
+            let curMap = [];
+            let curGraph = [];
+            for(let j = 0; j < 10; j++){
+                let geometry = new THREE.BoxGeometry(10, 10, 1);
+                geometry.rotateX(-90 * Math.PI / 180);
+                const material = new THREE.MeshBasicMaterial({color: 0xcccccc});
+                const box = new THREE.Mesh(geometry, material);
+                box.position.set(i * 10 + 5, -1.05, j * 10 + 5);
+                scene.add(box);
+                mesh.push(box);
+                curMap.push(box);
+                curGraph.push(1);
+            }
+            graph.push(curGraph);
+            map.push(curMap);
+        }
+    }
+
+    function render(){
+        renderer.render(scene, camera);
+        document.addEventListener('click', markMouse);
+        controls.update();
+        requestAnimationFrame(render);
+    }
+
+
+    function markMouse(event){
+        let xNUm, yNum;
+        let mouse = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window
+            .innerHeight) * 2 + 1, 0);
+        mouse = mouse.unproject(camera);
+        let rayCaster = new THREE.Raycaster(camera.position, mouse.sub(camera.position).normalize());
+        let res = rayCaster.intersectObjects(mesh, true);
+        if (res.length > 0) {
+            xNUm = (res[0].object.position.x - 5) / 10;
+            yNum = (res[0].object.position.z - 5) / 10;
+            if(graph[xNUm][yNum] == 0){
+                window.alert("不能选择该点！");
+                return;
+            }
+            res[0].object.material.color.set(0xff6666);
+            addTarget(xNUm, yNum);
+        }
+    }
+
+    function randomMap(){
+        let Cube = new THREE.BoxGeometry(8, 8, 5);
+        const material = new THREE.MeshBasicMaterial({color: 0x4d79ff});
+        for(let i = 0; i < length / 10; i++){
+            for(let j = 0; j < length / 10; j++){
+                let ran = Math.ceil(Math.random() * 10)
+                if(ran >= 8) {
+                    let x = 10 * i  + 5, z = 10 * j  + 5;
+                    const mesh = new THREE.Mesh(Cube, material);
+                    mesh.position.set(x, 4, z);
+                    scene.add(mesh);
+                    graph[i][j] = 0;
+                }
+            }
+        }
+    }
+
+    function getPath(){
+        let mapGraph = new Graph(graph);
+        res = astar.search(mapGraph, mapGraph.grid[stEn[0][0]][stEn[0][1]], mapGraph.grid[stEn[1][0]][stEn[1][1]]);
+        if(res.length > 0) {
+            for (let i = 0; i < res.length - 1; i++) {
+                let x = res[i].x;
+                let y = res[i].y;
+                map[x][y].material.color.set(0x80ffaa);
+            }
+        }
+        else{
+            window.alert("无法到达该点！");
+            clearMap();
+        }
+    }
+
+    function addTarget(x, z){
+        let cur = [x, z];
+        if(stEn.length < 2){
+            stEn.push(cur);
+            if(stEn.length == 2){
+                getPath();
+                stEn = [];
+            }
+        }
+
+    }
+
+    function clearMap(){
+        stEn = [];
+        for(let i = 0; i < length / 10; i++){
+            for(let j = 0; j < length / 10; j++){
+                map[i][j].material.color.set(0xcccccc);
+            }
+        }
+    }
+
+    let params = {
+        清除: function(){
+            clearMap();
+        }
+    }
+    initGround();
+    randomMap();
+    let gui = new GUI();
+    let folderLocal = gui.addFolder("控制");
+    folderLocal.add(params, "清除");
+    let camera = new THREE.PerspectiveCamera();
+    const renderer = new THREE.WebGLRenderer({canvas});
+    let controls = new OrbitControls.OrbitControls(camera, renderer.domElement);
+    controls.target = new THREE.Vector3(0, 0, 0);
+    camera.position.set(0, 200, 0);
+    controls.update();
+    renderer.clear();
+    renderer.setClearColor(0xffffff);
+    render();
+
+</script>
+</body>
+</html>
