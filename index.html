@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="stylesheet" href="box.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<title>jum_demo</title>
+<script src="https://unpkg.com/three@0.124.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.124.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://unpkg.com/three@0.124.0/examples/js/loaders/GLTFLoader.js"></script>
+<body>
+        <div id="score" type="label">得分:0</div>
+        <div id="hidden"></div>
+        <div id="box">
+            <input type="button" value="重试" id="retry">
+        </div>
+
+    <script type="module">
+        import {stage} from "./JumpGame/stage.js";
+        import {TWEEN} from "./three.js/examples/jsm/libs/tween.module.min.js";
+
+        const distance = 100;
+        let timeTmp;
+        let thisRange;
+        let curBoxX = 0;
+        let curCamX = -15;
+        let flag = 0;
+        let tween;
+        let curPos;
+        let disTmp;
+        let isFirst;
+        let mid;
+        let jumpCon = 0;
+        let score = 0;
+        let divBox = document.getElementById("box");
+        let divHid = document.getElementById("hidden");
+        let divRty = document.getElementById("retry");
+        let divSc = document.getElementById("score");
+
+        divRty.onclick = function (){
+            location.reload();
+        }
+
+        let a = new stage(2000, 2000, [curCamX, 70, 50], [60, 60, 60]);
+        a.createBox(curBoxX, 0);
+        disTmp = randomDis();
+        a.createBox(curBoxX + disTmp, 0);
+        curPos = new THREE.Vector3(a.head.position.x, a.head.position.y, a.head.position.z);
+
+
+        let renderer = a.renderer;
+        let scene = a.scene;
+        let camera = a.camera;
+        document.body.appendChild(renderer.domElement);
+        //const controls = new OrbitControls(camera, renderer.domElement);
+
+        render();
+
+         function render(){
+             requestAnimationFrame(render);
+             if(flag == 1) {
+                 animate();
+             }
+             document.addEventListener('mousedown', jumpStart);
+             document.addEventListener('mouseup', jumpEnd);
+             if(jumpCon == 3){
+                 document.removeEventListener('mousedown', jumpStart);
+                 document.removeEventListener('mouseup', jumpEnd);
+             }
+             renderer.render(scene, camera);
+         }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            a.cameraMove(camera.position.x + (curPos.x - a.head.position.x), a.camera.position.y, camera.position.z,);
+            if(curPos.x < mid + 1.5){
+                a.headMove(curPos.x, a.head.position.y + curPos.x - a.head.position.x, curPos.z);
+                a.bodyMove(curPos.x, a.body.position.y + curPos.x - a.body.position.x, a.body.position.z);
+            }
+            else{
+                a.headMove(curPos.x, a.head.position.y - (curPos.x - a.head.position.x), curPos.z);
+                a.bodyMove(curPos.x, a.body.position.y - (curPos.x - a.body.position.x), a.body.position.z);
+            }
+            a.cameraLook(curPos.x, 0, 0,);
+        }
+
+         function jumpStart(){
+             let time1 = new Date();
+            timeTmp = time1.getTime();  //毫秒
+         }
+
+         function jumpEnd(){
+             curPos.x = a.head.position.x;
+             curPos.y = a.head.position.y;
+             curPos.z = a.head.position.z;
+             let time2 = new Date();
+             let countTime = time2 - timeTmp;
+             let res = calcuJump(countTime);
+             let range = res[1];
+             if(isFirst == 0){
+                 disTmp = randomDis();
+             }
+             flag = 1;
+             tween = new TWEEN.Tween(curPos);
+             tween.easing(TWEEN.Easing.Cubic.InOut);
+             isFirst = 1;
+             if(range > curBoxX + disTmp - 15 - a.head.position.x) {
+                 jumpCon = 1
+                 tween.to({x: a.head.position.x + range, y: a.head.position.y}, countTime);
+                 mid = (a.head.position.x + (a.head.position.x + range)) / 2;
+                 tween.start();
+                 curBoxX += disTmp;
+                 curCamX += disTmp;
+                 disTmp = randomDis();
+                 a.createBox(curBoxX + disTmp, 0);
+             }
+             else if(range < curBoxX + 15 - a.head.position.x){
+                 jumpCon = 1;
+                 tween.to({x: a.head.position.x + range, y: a.head.position.y}, countTime);
+                 tween.start();
+                 mid = (a.head.position.x + (a.head.position.x + range)) / 2;
+             }
+             else {
+                 jumpCon = 3;
+                 tween.to({x: a.head.position.x + range, y: 100}, countTime);
+                 mid = (a.head.position.x + (a.head.position.x + range)) / 2;
+                 tween.start();
+                 curBoxX += disTmp;
+                 curCamX += disTmp;
+                 divBox.style.display = 'flex';
+                 divHid.style.display = 'flex';
+
+             }
+             if(jumpCon != 3){
+                 score += 1;
+                 divSc.innerText = "得分:" + score.toString();
+             }
+             a.stayBox();
+         }
+
+         function calcuJump(countTime){
+            const G = 9.8;
+            const V = 0.08;
+            let thisRange = Math.round(V * countTime);
+            return [countTime / 2 * G, thisRange];
+         }
+
+         function randomDis(){
+             let dis = Math.ceil(Math.random() * 70);
+             if(dis <= 30){
+                 dis += 40 - dis;
+             }
+             return dis;
+         }
+
+
+
+
+    </script>
+
+</body>
+</html>
